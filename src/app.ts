@@ -217,6 +217,10 @@ io.on("connection", (socket: AuthenticatedSocket) => {
 
 app.use(errorMiddleware);
 
-server.listen(port, () =>
-	console.log("Server is working on Port:" + port + " in " + envMode + " Mode.")
-);
+if (process.env.VERCEL !== "1") {
+  server.listen(port, () =>
+    console.log("Server is working on Port:" + port + " in " + envMode + " Mode.")
+  );
+}
+
+export default app;
