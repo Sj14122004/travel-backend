@@ -79,7 +79,16 @@ app.use(
 app.use(morgan("dev"));
 app.use(cookieParser());
 
-connectDB();
+export const dbPromise = connectDB();
+
+app.use(async (req, res, next) => {
+  try {
+    await dbPromise;
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 const limiter = rateLimit({
 	windowMs: 15 * 60 * 1000, // 15 minutes
