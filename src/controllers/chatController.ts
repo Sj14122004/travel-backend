@@ -7,35 +7,43 @@ import { Message } from "../models/messageModel.js";
 import { REFETCH_CHATS } from "../constants/events.js";
 
 export const getAllChats = TryCatch(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const chats = await Chat.find({ members: { $in: [req.user] } }).populate(
-			"members",
-			"name email avatar"
-		);
+    async (req: Request, res: Response, next: NextFunction) => {
+        const chats = await Chat.find({
+            members: { $in: [req.user] },
+        }).populate("members", "name email avatar");
 
-		const transformedChats = chats.map((chat) => {
-			const otherMembers = chat.members.filter(
-				(member: {
-					_id: string;
-					name: string;
-					email: string;
-					avatar: { _id: string; url: string };
-				}) => member._id.toString() !== req.user!.toString()
-			);
+        const transformedChats = chats
+            .map((chat) => {
+                const otherMembers = chat.members.filter(
+                    (member: any) =>
+                        member &&
+                        member._id &&
+                        member._id.toString() !== req.user!.toString()
+                );
 
-			return {
-				_id: chat._id,
-				name: otherMembers[0].name,
-				avatar: [otherMembers[0].avatar.url],
-				members: [otherMembers[0]._id],
-			};
-		});
+                // Handle chats without another valid member
+                if (otherMembers.length === 0) {
+                    return null;
+                }
 
-		return res.status(200).json({
-			success: true,
-			chats: transformedChats,
-		});
-	}
+                const otherMember = otherMembers[0];
+
+                return {
+                    _id: chat._id,
+                    name: otherMember.name || "Unknown User",
+                    avatar: otherMember.avatar?.url
+                        ? [otherMember.avatar.url]
+                        : [],
+                    members: [otherMember._id],
+                };
+            })
+            .filter((chat) => chat !== null);
+
+        return res.status(200).json({
+            success: true,
+            chats: transformedChats,
+        });
+    }
 );
 
 export const getChatDetails = TryCatch(
